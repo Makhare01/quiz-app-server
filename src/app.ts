@@ -30,4 +30,5 @@ connectDB()
 
 app.use(authRoutes);
 
-module.exports = app;
+// module.exports = app;
+export default app;
