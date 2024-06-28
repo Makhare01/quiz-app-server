@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 
 import { authRoutes } from "./routes";
 import { connectDB } from "./db";
+import { userRoutes } from "./routes/user-routes";
 
 dotenv.config();
 
@@ -29,6 +30,6 @@ connectDB()
   });
 
 app.use(authRoutes);
+app.use(userRoutes);
 
-// module.exports = app;
 export default app;
