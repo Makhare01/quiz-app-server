@@ -7,13 +7,13 @@ import {
 
 export const userRoutes = Router();
 
-userRoutes.post(
+userRoutes.patch(
   "/api/user/credentials",
   authMiddleware,
   userCredentialsController
 );
 
-userRoutes.post(
+userRoutes.patch(
   "/api/user/change-password",
   authMiddleware,
   userUpdatePasswordController
