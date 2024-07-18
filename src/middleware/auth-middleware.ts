@@ -16,13 +16,15 @@ export const authMiddleware = (
     });
   }
 
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!, (err) => {
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!, (err, user: any) => {
     if (err) {
       return res.status(403).json({
         name: "Forbidden",
         message: "You don't have permission to access this resource",
       });
     }
+
+    res.locals.userId = user.userId;
 
     next();
   });

@@ -3,9 +3,14 @@ import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
-import { authRoutes } from "./routes";
+import {
+  authRoutes,
+  userRoutes,
+  quizRoutes,
+  questionRoutes,
+  answerRoutes,
+} from "./routes";
 import { connectDB } from "./db";
-import { userRoutes } from "./routes/user-routes";
 
 dotenv.config();
 
@@ -17,6 +22,7 @@ app.use(express.json());
 app.use(express.urlencoded());
 app.use(cors());
 app.use(cookieParser());
+app.disable("etag");
 
 connectDB()
   .then(() => {
@@ -31,5 +37,8 @@ connectDB()
 
 app.use(authRoutes);
 app.use(userRoutes);
+app.use(quizRoutes);
+app.use(questionRoutes);
+app.use(answerRoutes);
 
 export default app;
