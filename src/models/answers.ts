@@ -6,6 +6,10 @@ const AnswerSchema = new Schema({
     type: String,
     required: true,
   },
+  answerType: {
+    type: String,
+    required: true,
+  },
   order: {
     type: Number,
     required: true,

@@ -140,6 +140,7 @@ export const saveAnswerController = async (req: Request, res: Response) => {
       myAnswers?.push({
         order,
         questionId,
+        answerType,
         questionAnswer: {
           answer: answers,
           isCorrect: isCorrect === true,
@@ -149,6 +150,7 @@ export const saveAnswerController = async (req: Request, res: Response) => {
       myAnswers?.push({
         order,
         questionId,
+        answerType,
         questionAnswer: {
           answer: answers,
         },

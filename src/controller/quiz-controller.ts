@@ -184,7 +184,9 @@ export const deleteQuizController = async (req: Request, res: Response) => {
   const { quizId } = req.params;
 
   try {
-    await Quiz.findByIdAndDelete(quizId);
+    const deletedQuiz = await Quiz.findByIdAndDelete(quizId);
+
+    await Question.findByIdAndDelete(deletedQuiz?.questionsId);
 
     res.status(200).json({
       name: "No Content",
