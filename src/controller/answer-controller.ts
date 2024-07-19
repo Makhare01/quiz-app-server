@@ -6,7 +6,7 @@ export const startQuizController = async (req: Request, res: Response) => {
   const { quizId, userId, email, username } = req.body;
 
   try {
-    const answer = await Answer.find({ userId, questionsId });
+    const answer = await Answer.find({ "user.email": email, questionsId });
 
     if (answer.length > 0) {
       return res.status(200).json({
@@ -15,11 +15,13 @@ export const startQuizController = async (req: Request, res: Response) => {
     }
 
     const newAnswer = await Answer.create({
-      userId,
       quizId,
-      email,
-      username,
       questionsId,
+      user: {
+        userId,
+        email,
+        username,
+      },
       answers: [],
     });
 
@@ -52,12 +54,34 @@ export const startQuizController = async (req: Request, res: Response) => {
 };
 
 export const getUserAnswerController = async (req: Request, res: Response) => {
-  const { answerId } = req.params;
+  const { answerId, userId, questionsId } = req.query;
 
   try {
-    const answer = await Answer.findById(answerId);
+    let answer = null;
+    if (answerId) {
+      answer = await Answer.findById(answerId);
+    } else {
+      answer = await Answer.findOne({
+        "user.userId": userId,
+        questionsId,
+      });
+    }
 
-    res.status(200).json(answer);
+    if (!answer) {
+      return res.status(400).json({
+        name: "Bad Request",
+        message: "Failed to find user question",
+      });
+    }
+
+    const quiz = await Quiz.findById(answer.quizId);
+
+    const publicAnswer = {
+      ...answer.toJSON(),
+      questionsCount: quiz?.questionsCount,
+    };
+
+    res.status(200).json(publicAnswer);
   } catch (error: any) {
     res.status(400).json({
       name: "Bad Request",
@@ -114,21 +138,32 @@ export const getQuestionControllerController = async (
 
 export const saveAnswerController = async (req: Request, res: Response) => {
   const { answerId } = req.params;
-  const { answers, questionId, quizId, answerType, order, isLast, userId } =
-    req.body;
+  const { answers, questionId, quizId, answerType, order, isLast } = req.body;
 
   try {
     const answer = await Answer.findById(answerId);
 
-    const myAnswers = answer?.answers;
+    const question = await Question.findById(answer?.questionsId);
 
-    if (answerType !== "TEXT" && answerType !== "TEXT_MULTILINE") {
-      const question = await Question.findById(answer?.questionsId);
+    const currentQuestion = question?.questions.find(
+      (item) => item._id?.toString() === questionId
+    );
 
-      const currentQuestion = question?.questions.find(
-        (item) => item._id === questionId
-      );
+    let updatedAnswer: any = {
+      order,
+      questionId,
+      question: currentQuestion?.question,
+      answerType,
+      questionAnswer: {
+        answer: answers,
+      },
+    };
 
+    if (
+      answerType === "RADIO" ||
+      answerType === "CHECKBOX" ||
+      answerType === "DATE"
+    ) {
       const correctAnswers = currentQuestion?.answers
         .filter((item) => item.isCorrect === true)
         .map((corrects) => corrects.answer);
@@ -137,34 +172,26 @@ export const saveAnswerController = async (req: Request, res: Response) => {
         correctAnswers?.includes(item)
       );
 
-      myAnswers?.push({
-        order,
-        questionId,
-        answerType,
-        questionAnswer: {
-          answer: answers,
-          isCorrect: isCorrect === true,
-        },
-      });
-    } else {
-      myAnswers?.push({
-        order,
-        questionId,
-        answerType,
-        questionAnswer: {
-          answer: answers,
-        },
-      });
+      updatedAnswer.questionAnswer["isCorrect"] = isCorrect === true;
+    }
+
+    if (answerType === "DROPDOWN") {
+      let isCorrect = false;
+      if (currentQuestion?.dropdownAnswers?.answer === answers[0])
+        isCorrect = true;
+      updatedAnswer.questionAnswer["isCorrect"] = isCorrect;
     }
 
     const newAnswer = await Answer.findByIdAndUpdate(answerId, {
-      answers: myAnswers,
+      $push: {
+        answers: updatedAnswer,
+      },
     });
 
     if (isLast) {
       await Quiz.updateOne(
-        { _id: quizId, "users.email": newAnswer?.email },
-        { $set: { "users.$.isFinished": true } }
+        { _id: quizId, "users.email": newAnswer?.user?.email },
+        { $set: { "users.$.isFinished": true, quizEndDate: new Date() } }
       );
     }
 

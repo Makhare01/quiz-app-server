@@ -9,6 +9,7 @@ import {
   getPublicQuizDetailsController,
   getPublicQuizzesController,
   getQuizDetailsController,
+  userInProgressQuizzesComponent,
 } from "../controller";
 
 export const quizRoutes = Router();
@@ -23,6 +24,11 @@ quizRoutes.get(
 );
 
 quizRoutes.get("/api/my-quizzes", authMiddleware, getMyQuizzesController);
+quizRoutes.get(
+  "/api/my-quizzes/in-progress",
+  authMiddleware,
+  userInProgressQuizzesComponent
+);
 quizRoutes.patch(
   "/api/my-quizzes/:quizId/edit",
   authMiddleware,

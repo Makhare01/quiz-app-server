@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { AuthUser, Question, Quiz } from "../models";
+import { Answer, AuthUser, Question, Quiz } from "../models";
 import { RequestError, handleAuthRequestErrors } from "../utils";
 import { jwtDecode } from "jwt-decode";
 import { getPublicQuiz } from "../utils/quizzes";
@@ -224,6 +224,46 @@ export const changeQuizStatusController = async (
     res.status(400).json({
       name: "Bad Request",
       message: "Failed to update quiz status",
+      error: error.message,
+    });
+  }
+};
+
+export const userInProgressQuizzesComponent = async (
+  req: Request,
+  res: Response
+) => {
+  const userId = res.locals.userId as string;
+
+  try {
+    const userAnswers = await Answer.find({ "user.userId": userId });
+
+    if (userAnswers) {
+      const inProgressQuizzes = await Promise.all(
+        userAnswers.map(async (userAnswer) => {
+          const quiz = await Quiz.findById(userAnswer.quizId);
+
+          return {
+            answerId: userAnswer._id,
+            quizName: quiz?.name,
+            category: quiz?.category,
+            questionsCount: quiz?.questionsCount,
+            ...userAnswer.toJSON(),
+          };
+        })
+      );
+
+      return res.status(200).json(inProgressQuizzes);
+    }
+
+    res.status(400).json({
+      name: "Bad Request",
+      message: "Failed to get user quiz answers",
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      name: "Bad Request",
+      message: "Failed to get in progress quizzes",
       error: error.message,
     });
   }

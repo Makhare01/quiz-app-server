@@ -6,6 +6,10 @@ const AnswerSchema = new Schema({
     type: String,
     required: true,
   },
+  question: {
+    type: String,
+    required: true,
+  },
   answerType: {
     type: String,
     required: true,
@@ -20,24 +24,29 @@ const AnswerSchema = new Schema({
   }),
 });
 
+const AnswerUserSchema = new Schema({
+  userId: String,
+  email: {
+    type: String,
+    required: true,
+    validate: [isEmail, "Please enter a valid email"],
+  },
+  username: {
+    type: String,
+    required: true,
+  },
+});
+
 const UserAnswerSchema = new Schema(
   {
-    userId: String,
     quizId: String,
-    email: {
-      type: String,
-      required: true,
-      validate: [isEmail, "Please enter a valid email"],
-    },
-    username: {
-      type: String,
-      required: true,
-    },
     questionsId: {
       type: String,
       required: true,
     },
+    user: AnswerUserSchema,
     answers: [AnswerSchema],
+    quizEndDate: Date,
   },
   {
     timestamps: true,
