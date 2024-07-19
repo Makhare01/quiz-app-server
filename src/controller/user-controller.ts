@@ -7,7 +7,8 @@ export const userCredentialsController = async (
   req: Request,
   res: Response
 ) => {
-  const { userId, ...updatedUser } = req.body;
+  const userId = res.locals.userId as string;
+  const updatedUser = req.body;
 
   try {
     const user = await User.findByIdAndUpdate(userId, updatedUser, {
@@ -34,7 +35,8 @@ export const userUpdatePasswordController = async (
   req: Request,
   res: Response
 ) => {
-  const { userId, oldPassword, newPassword, passwordConfirm } = req.body;
+  const userId = res.locals.userId as string;
+  const { oldPassword, newPassword, passwordConfirm } = req.body;
 
   if (newPassword !== passwordConfirm) {
     return res.status(400).json({
@@ -95,6 +97,38 @@ export const userUpdatePasswordController = async (
     res.status(400).json({
       name: "Bad Request",
       message: error.message,
+    });
+  }
+};
+
+export const updateUserFavoriteQuizzes = async (
+  req: Request,
+  res: Response
+) => {
+  const userId = res.locals.userId as string;
+  const { quizId } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+
+    let favoriteQuizzes = user?.favoriteQuizzes;
+
+    if (user?.favoriteQuizzes.includes(quizId)) {
+      favoriteQuizzes = user.favoriteQuizzes.filter((item) => item !== quizId);
+    } else {
+      favoriteQuizzes?.push(quizId);
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(userId, {
+      favoriteQuizzes,
+    });
+
+    res.status(200).json(updatedUser);
+  } catch (error: any) {
+    res.status(400).json({
+      name: "Bad Request",
+      message: "Failed to add quiz in favorites",
+      error: error.message,
     });
   }
 };

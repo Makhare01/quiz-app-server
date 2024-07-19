@@ -49,5 +49,6 @@ export const getUserPublicInfo = (
     firstName: user.firstName,
     lastName: user.lastName,
     email: user.email,
+    favoriteQuizzes: user.favoriteQuizzes,
   };
 };
