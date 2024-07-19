@@ -16,7 +16,7 @@ answerRoutes.post(
 );
 
 answerRoutes.get(
-  "/api/answer/:answerId",
+  "/api/answer/details",
   authMiddleware,
   getUserAnswerController
 );
