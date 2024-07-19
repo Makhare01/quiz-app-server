@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { Answer, AuthUser, Question, Quiz } from "../models";
+import { Answer, AuthUser, Question, Quiz, User } from "../models";
 import { RequestError, handleAuthRequestErrors } from "../utils";
 import { jwtDecode } from "jwt-decode";
 import { getPublicQuiz } from "../utils/quizzes";
@@ -49,15 +49,22 @@ export const createQuizController = async (req: Request, res: Response) => {
 };
 
 export const getQuizDetailsController = async (req: Request, res: Response) => {
-  const { quizId } = req.params;
-
   const userId = res.locals.userId as string;
 
+  const { quizId } = req.params;
+
   try {
+    const user = await User.findById(userId);
+
     const quiz = await Quiz.findById(quizId);
 
     if (quiz?.userId === userId) {
-      return res.status(200).json(quiz);
+      const isFavorite = user?.favoriteQuizzes.includes(quizId);
+
+      return res.status(200).json({
+        isFavorite,
+        ...quiz.toJSON(),
+      });
     }
 
     res.status(403).json({
@@ -77,6 +84,8 @@ export const getPublicQuizzesController = async (
   req: Request,
   res: Response
 ) => {
+  const userId = res.locals.userId as string;
+
   const { category, search } = req.query;
 
   try {
@@ -93,7 +102,11 @@ export const getPublicQuizzesController = async (
       }),
     });
 
-    const publicQuizzes = quizzes.map((quiz) => getPublicQuiz(quiz));
+    const user = await User.findById(userId);
+
+    const publicQuizzes = quizzes.map((quiz) =>
+      getPublicQuiz(quiz, user?.favoriteQuizzes)
+    );
 
     res.status(200).json(publicQuizzes);
   } catch (error: any) {
@@ -108,13 +121,16 @@ export const getPublicQuizDetailsController = async (
   req: Request,
   res: Response
 ) => {
+  const userId = res.locals.userId as string;
+
   const { quizId } = req.params;
 
   try {
     const quiz = await Quiz.findById(quizId);
 
     if (quiz?.status === "READY") {
-      const publicQuizzes = getPublicQuiz(quiz);
+      const user = await User.findById(userId);
+      const publicQuizzes = getPublicQuiz(quiz, user?.favoriteQuizzes);
 
       return res.status(200).json(publicQuizzes);
     }
@@ -137,7 +153,18 @@ export const getMyQuizzesController = async (_req: Request, res: Response) => {
   try {
     const quizzes = await Quiz.find({ userId });
 
-    res.status(200).json(quizzes);
+    const user = await User.findById(userId);
+
+    const myQuizzes = quizzes.map((quiz) => {
+      const isFavorite = user?.favoriteQuizzes.includes(quiz._id.toString());
+
+      return {
+        isFavorite,
+        ...quiz.toJSON(),
+      };
+    });
+
+    res.status(200).json(myQuizzes);
   } catch (error: any) {
     res.status(400).json({
       name: "Bad Request",
@@ -230,24 +257,31 @@ export const changeQuizStatusController = async (
 };
 
 export const userInProgressQuizzesComponent = async (
-  req: Request,
+  _req: Request,
   res: Response
 ) => {
   const userId = res.locals.userId as string;
 
   try {
+    const user = await User.findById(userId);
+    const userFavoriteQuizzes = user?.favoriteQuizzes;
+
     const userAnswers = await Answer.find({ "user.userId": userId });
 
     if (userAnswers) {
       const inProgressQuizzes = await Promise.all(
         userAnswers.map(async (userAnswer) => {
           const quiz = await Quiz.findById(userAnswer.quizId);
+          const isFavorite = userFavoriteQuizzes?.includes(
+            userAnswer.quizId ?? ""
+          );
 
           return {
             answerId: userAnswer._id,
             quizName: quiz?.name,
             category: quiz?.category,
             questionsCount: quiz?.questionsCount,
+            isFavorite,
             ...userAnswer.toJSON(),
           };
         })
@@ -264,6 +298,30 @@ export const userInProgressQuizzesComponent = async (
     res.status(400).json({
       name: "Bad Request",
       message: "Failed to get in progress quizzes",
+      error: error.message,
+    });
+  }
+};
+
+export const getUserFavoriteQuizzes = async (req: Request, res: Response) => {
+  const userId = res.locals.userId as string;
+
+  try {
+    const user = await User.findById(userId);
+
+    const favoriteQuizzes = user?.favoriteQuizzes;
+
+    const quizzes = await Quiz.find({ _id: { $in: favoriteQuizzes } });
+
+    const favorites = quizzes.map((quiz) =>
+      getPublicQuiz(quiz, user?.favoriteQuizzes)
+    );
+
+    res.status(200).json(favorites);
+  } catch (error: any) {
+    res.status(400).json({
+      name: "Bad Request",
+      message: "Failed to get favorite quizzes",
       error: error.message,
     });
   }

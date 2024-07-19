@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authMiddleware } from "../middleware";
 import {
+  updateUserFavoriteQuizzes,
   userCredentialsController,
   userUpdatePasswordController,
 } from "../controller";
@@ -17,4 +18,10 @@ userRoutes.patch(
   "/api/user/change-password",
   authMiddleware,
   userUpdatePasswordController
+);
+
+userRoutes.put(
+  "/api/user/favorite-quizzes",
+  authMiddleware,
+  updateUserFavoriteQuizzes
 );

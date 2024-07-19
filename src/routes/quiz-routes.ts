@@ -9,6 +9,7 @@ import {
   getPublicQuizDetailsController,
   getPublicQuizzesController,
   getQuizDetailsController,
+  getUserFavoriteQuizzes,
   userInProgressQuizzesComponent,
 } from "../controller";
 
@@ -43,4 +44,10 @@ quizRoutes.put(
   "/api/my-quizzes/:quizId/change-status",
   authMiddleware,
   changeQuizStatusController
+);
+
+quizRoutes.get(
+  "/api/my-quizzes/favorites",
+  authMiddleware,
+  getUserFavoriteQuizzes
 );

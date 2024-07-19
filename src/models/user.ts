@@ -7,6 +7,7 @@ export type AuthUser = {
   email: string;
   firstName: string;
   lastName: string;
+  favoriteQuizzes: Array<string>;
 };
 
 const UserSchema = new Schema(
@@ -30,6 +31,7 @@ const UserSchema = new Schema(
       type: String,
       required: [true, "last name field is required"],
     },
+    favoriteQuizzes: [String],
   },
   {
     timestamps: true,
