@@ -9,26 +9,13 @@ import {
 
 export const answerRoutes = Router();
 
-answerRoutes.post(
-  "/api/answer/:questionsId/start",
-  authMiddleware,
-  startQuizController
-);
+answerRoutes.post("/api/answer/:questionsId/start", startQuizController);
 
-answerRoutes.get(
-  "/api/answer/details",
-  authMiddleware,
-  getUserAnswerController
-);
+answerRoutes.get("/api/answer/details", getUserAnswerController);
 
 answerRoutes.get(
   "/api/answer/:questionsId/next",
-  authMiddleware,
   getQuestionControllerController
 );
 
-answerRoutes.post(
-  "/api/answer/:answerId/save",
-  authMiddleware,
-  saveAnswerController
-);
+answerRoutes.post("/api/answer/:answerId/save", saveAnswerController);
