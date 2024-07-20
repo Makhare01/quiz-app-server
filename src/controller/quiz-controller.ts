@@ -121,16 +121,25 @@ export const getPublicQuizDetailsController = async (
   req: Request,
   res: Response
 ) => {
-  const userId = res.locals.userId as string;
-
   const { quizId } = req.params;
+  const { userId } = req.query;
 
   try {
     const quiz = await Quiz.findById(quizId);
 
     if (quiz?.status === "READY") {
-      const user = await User.findById(userId);
-      const publicQuizzes = getPublicQuiz(quiz, user?.favoriteQuizzes);
+      let publicQuizzes = null;
+      if (userId) {
+        const user = await User.findById(userId);
+        publicQuizzes = getPublicQuiz(quiz, user?.favoriteQuizzes);
+      } else if (quiz.visibility === "LINK") {
+        publicQuizzes = getPublicQuiz(quiz);
+      } else {
+        return res.status(400).json({
+          name: "Forbidden",
+          message: "You don't have access to this quiz",
+        });
+      }
 
       return res.status(200).json(publicQuizzes);
     }

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { Answer, Question, Quiz, User } from "../models";
+import { ObjectId } from "mongodb";
 
 export const startQuizController = async (req: Request, res: Response) => {
   const { questionsId } = req.params;
@@ -54,15 +55,18 @@ export const startQuizController = async (req: Request, res: Response) => {
 };
 
 export const getUserAnswerController = async (req: Request, res: Response) => {
-  const { answerId, userId, questionsId } = req.query;
+  const { answerId, email, questionsId } = req.query;
 
   try {
     let answer = null;
     if (answerId) {
-      answer = await Answer.findById(answerId);
+      answer = await Answer.findOne({
+        _id: new ObjectId(answerId as string),
+        "user.email": email,
+      });
     } else {
       answer = await Answer.findOne({
-        "user.userId": userId,
+        "user.email": email,
         questionsId,
       });
     }
@@ -96,36 +100,45 @@ export const getQuestionControllerController = async (
   res: Response
 ) => {
   const { questionsId } = req.params;
-  const { lastQuestionId } = req.query;
+  const { lastQuestionId, email } = req.query;
 
   try {
-    const question = await Question.findById(questionsId);
+    const answer = await Answer.findOne({ email, questionsId });
 
-    const currentQuestion = question?.questions.find(
-      (question) => question._id?.toString() === lastQuestionId
-    );
+    if (answer) {
+      const question = await Question.findById(questionsId);
 
-    const nextQuestionOrder = currentQuestion ? currentQuestion.order + 1 : 0;
+      const currentQuestion = question?.questions.find(
+        (question) => question._id?.toString() === lastQuestionId
+      );
 
-    const nextQuestion = question?.questions.find(
-      (question) => question.order === nextQuestionOrder
-    );
+      const nextQuestionOrder = currentQuestion ? currentQuestion.order + 1 : 0;
 
-    if (nextQuestion) {
-      return res.status(200).send({
-        questionId: nextQuestion._id,
-        question: nextQuestion.question,
-        type: nextQuestion.type,
-        isRequired: nextQuestion.isRequired,
-        order: nextQuestion.order,
-        options: nextQuestion.answers.map((answer) => answer.answer),
-        dropdownOptions: nextQuestion.dropdownAnswers?.options,
+      const nextQuestion = question?.questions.find(
+        (question) => question.order === nextQuestionOrder
+      );
+
+      if (nextQuestion) {
+        return res.status(200).send({
+          questionId: nextQuestion._id,
+          question: nextQuestion.question,
+          type: nextQuestion.type,
+          isRequired: nextQuestion.isRequired,
+          order: nextQuestion.order,
+          options: nextQuestion.answers.map((item) => item.answer),
+          dropdownOptions: nextQuestion.dropdownAnswers?.options,
+        });
+      }
+
+      return res.status(400).json({
+        name: "Bad Request",
+        message: "Failed to get next question",
       });
     }
 
-    res.status(400).json({
+    res.status(403).json({
       name: "Bad Request",
-      message: "Failed to get next question",
+      message: "You don't have access to this question",
     });
   } catch (error: any) {
     res.status(400).json({
@@ -138,10 +151,11 @@ export const getQuestionControllerController = async (
 
 export const saveAnswerController = async (req: Request, res: Response) => {
   const { answerId } = req.params;
-  const { answers, questionId, quizId, answerType, order, isLast } = req.body;
+  const { answers, email, questionId, quizId, answerType, order, isLast } =
+    req.body;
 
   try {
-    const answer = await Answer.findById(answerId);
+    const answer = await Answer.findOne({ _id: answerId, "user.email": email });
 
     const question = await Question.findById(answer?.questionsId);
 
@@ -190,7 +204,7 @@ export const saveAnswerController = async (req: Request, res: Response) => {
 
     if (isLast) {
       await Quiz.updateOne(
-        { _id: quizId, "users.email": newAnswer?.user?.email },
+        { _id: new ObjectId(quizId), "users.email": newAnswer?.user?.email },
         { $set: { "users.$.isFinished": true, quizEndDate: new Date() } }
       );
     }
