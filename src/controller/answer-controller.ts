@@ -4,7 +4,15 @@ import { ObjectId } from "mongodb";
 
 export const startQuizController = async (req: Request, res: Response) => {
   const { questionsId } = req.params;
-  const { quizId, userId, email, username } = req.body;
+  const {
+    quizId,
+    userId,
+    email,
+    username,
+    quizName,
+    category,
+    questionsCount,
+  } = req.body;
 
   try {
     const answer = await Answer.find({ "user.email": email, questionsId });
@@ -18,6 +26,9 @@ export const startQuizController = async (req: Request, res: Response) => {
     const newAnswer = await Answer.create({
       quizId,
       questionsId,
+      quizName,
+      quizCategory: category,
+      questionsCount,
       user: {
         userId,
         email,
@@ -26,21 +37,17 @@ export const startQuizController = async (req: Request, res: Response) => {
       answers: [],
     });
 
-    const quiz = await Quiz.findById(quizId);
-
-    if (quiz) {
-      await Quiz.findByIdAndUpdate(quizId, {
-        $push: {
-          users: {
-            userId,
-            email,
-            username,
-            answerId: newAnswer._id,
-            isFinished: false,
-          },
+    await Quiz.findByIdAndUpdate(quizId, {
+      $push: {
+        users: {
+          userId,
+          email,
+          username,
+          answerId: newAnswer._id,
+          isFinished: false,
         },
-      });
-    }
+      },
+    });
 
     res.status(200).json({
       answerId: newAnswer._id,
@@ -200,12 +207,13 @@ export const saveAnswerController = async (req: Request, res: Response) => {
       $push: {
         answers: updatedAnswer,
       },
+      quizEndDate: isLast ? new Date() : undefined,
     });
 
     if (isLast) {
       await Quiz.updateOne(
         { _id: new ObjectId(quizId), "users.email": newAnswer?.user?.email },
-        { $set: { "users.$.isFinished": true, quizEndDate: new Date() } }
+        { $set: { "users.$.isFinished": true } }
       );
     }
 

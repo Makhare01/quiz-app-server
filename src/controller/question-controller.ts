@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { Question, Quiz } from "../models";
+import { Answer, Question, Quiz } from "../models";
 import { handleAuthRequestErrors, RequestError } from "../utils";
 
 export const updateQuestionsController = async (
@@ -21,6 +21,8 @@ export const updateQuestionsController = async (
     await Quiz.findByIdAndUpdate(quizId, {
       questionsCount: questions.length,
     });
+
+    await Answer.updateMany({ quizId }, { questionsCount: questions.length });
 
     res.status(201).json(question);
   } catch (error: any) {

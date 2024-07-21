@@ -46,6 +46,18 @@ const UserAnswerSchema = new Schema(
     },
     user: AnswerUserSchema,
     answers: [AnswerSchema],
+    quizName: {
+      type: String,
+      required: true,
+    },
+    questionsCount: {
+      type: Number,
+      required: true,
+    },
+    quizCategory: {
+      type: String,
+      required: true,
+    },
     quizEndDate: Date,
   },
   {
