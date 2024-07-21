@@ -204,6 +204,17 @@ export const editQuizController = async (req: Request, res: Response) => {
       await Question.findByIdAndUpdate(quiz.questionsId, {
         quizName: quiz.name,
       });
+
+      await Answer.updateMany(
+        {
+          quizId: quiz._id,
+        },
+        {
+          quizName: quiz.name,
+          questionsCount: quiz.questionsCount,
+          quizCategory: quiz.category,
+        }
+      );
     }
 
     res.status(201).json(quiz);
@@ -265,7 +276,7 @@ export const changeQuizStatusController = async (
   }
 };
 
-export const userInProgressQuizzesComponent = async (
+export const userInProgressQuizzesController = async (
   _req: Request,
   res: Response
 ) => {
@@ -278,23 +289,16 @@ export const userInProgressQuizzesComponent = async (
     const userAnswers = await Answer.find({ "user.userId": userId });
 
     if (userAnswers) {
-      const inProgressQuizzes = await Promise.all(
-        userAnswers.map(async (userAnswer) => {
-          const quiz = await Quiz.findById(userAnswer.quizId);
-          const isFavorite = userFavoriteQuizzes?.includes(
-            userAnswer.quizId ?? ""
-          );
+      const inProgressQuizzes = userAnswers.map((userAnswer) => {
+        const isFavorite = userFavoriteQuizzes?.includes(
+          userAnswer.quizId ?? ""
+        );
 
-          return {
-            answerId: userAnswer._id,
-            quizName: quiz?.name,
-            category: quiz?.category,
-            questionsCount: quiz?.questionsCount,
-            isFavorite,
-            ...userAnswer.toJSON(),
-          };
-        })
-      );
+        return {
+          isFavorite,
+          ...userAnswer.toJSON(),
+        };
+      });
 
       return res.status(200).json(inProgressQuizzes);
     }
